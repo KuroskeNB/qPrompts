@@ -1,7 +1,7 @@
 # qPrompts — Agent Eval Pipeline
 
 A **config-driven, three-level evaluation framework** for AI agent system prompts.
-Powered by the **Gemini API** (free tier compatible). No local GPU or Ollama required.
+Powered by the **Gemini API** (free tier compatible). No local GPU or Ollama required. - Gemini 3.1 Flash Lite Recommendation
 
 ```
 L1 → fast regex/heuristic checks       (no LLM needed)
