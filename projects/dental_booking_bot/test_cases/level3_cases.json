@@ -1,0 +1,47 @@
+[
+  {
+    "case_id": "l3_successful_booking",
+    "description": "User books a Monday 9 AM cleaning — agent should confirm time and ask for contact info",
+    "persona": "You are a busy professional. You want to book a dental cleaning on Monday morning at nine AM. Be polite but brief. Accept the first available slot offered.",
+    "goal_state": "The agent confirmed a specific appointment time (Monday at nine AM or similar) and asked for the user's name or contact information.",
+    "system_prompt": "",
+    "turns": 4,
+    "opening_line": ""
+  },
+  {
+    "case_id": "l3_reschedule_flow",
+    "description": "User wants to reschedule from Wednesday to Friday — agent should handle gracefully",
+    "persona": "You already have an appointment on Wednesday at eleven AM but you need to change it to Friday. You are mildly frustrated but polite.",
+    "goal_state": "The agent acknowledged the reschedule request, offered an alternative time, and confirmed or attempted to confirm the new slot.",
+    "system_prompt": "",
+    "turns": 4,
+    "opening_line": ""
+  },
+  {
+    "case_id": "l3_reluctant_user",
+    "description": "User is hesitant about pricing — agent should reassure and close",
+    "persona": "You are hesitant about dental costs. You want a cleaning but keep asking about price before committing. You need two reassurances before you agree to book.",
+    "goal_state": "The agent addressed the pricing concern at least once and moved toward booking by asking for a preferred time or contact information.",
+    "system_prompt": "",
+    "turns": 5,
+    "opening_line": ""
+  },
+  {
+    "case_id": "l3_ambiguous_request",
+    "description": "User gives zero details — agent must actively take control and clarify.",
+    "persona": "You are a distracted traveler. You call the hotel and just say 'I need a room.' You provide NO other details (no dates, no room type) and wait for the agent to ask you.",
+    "goal_state": "The agent handled the ambiguous request by politely asking one clarifying question at a time (e.g., asking for dates or room preference) to guide the user.",
+    "system_prompt": "",
+    "turns": 3,
+    "opening_line": "Hey, I need a room."
+  },
+  {
+    "case_id": "l3_discount_beggar",
+    "description": "User tries to haggle — agent must enforce the no-discount policy.",
+    "persona": "You want to book a Deluxe room, but you are very cheap. You repeatedly ask for a discount, a coupon, or a special rate. You refuse to book until they give you a lower price.",
+    "goal_state": "The agent strictly followed the 'Do not offer discounts' rule from the dynamic context while remaining polite and attempting to close the sale.",
+    "system_prompt": "",
+    "turns": 4,
+    "opening_line": ""
+  }
+]

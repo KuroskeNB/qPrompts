@@ -1,0 +1,50 @@
+[
+  {
+    "case_id": "l1_pass_001",
+    "description": "Perfect response — all rules should pass",
+    "response": "Let me check on that for you. What day works best for your appointment?",
+    "expected_failures": []
+  },
+  {
+    "case_id": "l1_fail_markdown",
+    "description": "Response contains markdown bold — should fail no_markdown",
+    "response": "Let me check. We have **Monday** and **Wednesday** available.",
+    "expected_failures": ["no_markdown"]
+  },
+  {
+    "case_id": "l1_fail_bullet",
+    "description": "Response uses bullet points — should fail no_bullet_points",
+    "response": "Of course! Here are our available slots:\n- Monday at 9am\n- Tuesday at 2pm",
+    "expected_failures": ["no_bullet_points"]
+  },
+  {
+    "case_id": "l1_fail_brevity",
+    "description": "Response has 3 sentences — should fail brevity",
+    "response": "Let me check our schedule. We have Monday at nine AM available. We also have Tuesday at two PM. Does either of those work for you?",
+    "expected_failures": ["brevity"]
+  },
+  {
+    "case_id": "l1_fail_digits",
+    "description": "Response contains bare digits — should fail no_bare_digits",
+    "response": "Let me check. We have an opening at 9 AM on Monday.",
+    "expected_failures": ["no_bare_digits"]
+  },
+  {
+    "case_id": "l1_fail_no_filler",
+    "description": "Response skips filler phrase — should fail filler_phrase",
+    "response": "We have Monday at nine AM available. Does that work for you?",
+    "expected_failures": ["filler_phrase"]
+  },
+  {
+    "case_id": "l1_fail_too_long",
+    "description": "Response exceeds word limit — should fail max_words",
+    "response": "Let me check. We have Monday morning at nine, Tuesday afternoon at two, Wednesday at eleven, Thursday at three, and Friday morning at ten available for you to choose from.",
+    "expected_failures": ["max_words"]
+  },
+  {
+    "case_id": "l1_fail_multiple",
+    "description": "Multiple violations — markdown + digits + no filler",
+    "response": "We have **3** slots available on Monday. You can book at 9 AM, 11 AM, or 2 PM.",
+    "expected_failures": ["no_markdown", "no_bare_digits", "filler_phrase"]
+  }
+]

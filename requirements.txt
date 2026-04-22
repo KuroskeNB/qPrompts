@@ -1,0 +1,9 @@
+pytest>=8.0
+pytest-html>=4.0
+requests>=2.31
+pyyaml>=6.0
+rich>=13.0
+jsonschema>=4.20
+fastapi>=0.111
+uvicorn>=0.29
+psutil>=5.9

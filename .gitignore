@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Reports and run history (project-specific output — don't commit)
+projects/*/reports/
+
+# Keep prompts and test cases (they ARE source)
+!projects/*/prompts/
+!projects/*/test_cases/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ollama model files (if ever stored locally)
+*.gguf
+*.bin
+
+# Env / secrets
+.env
+*.env
+
+# Runtime files — contain API keys and ephemeral output
+settings.json
+last_run.json
+web.log
