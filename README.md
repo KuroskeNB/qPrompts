@@ -111,6 +111,8 @@ Rate limiting is handled automatically — the client enforces ~12 RPM with inte
 
 ### LangSmith Tracing (optional)
 
+> **Not required.** Leave the API key blank and evals run exactly the same — tracing is silently skipped.
+
 Every Gemini call can be traced to a [LangSmith](https://smith.langchain.com) project for token usage monitoring and prompt debugging. Configure in **Settings**:
 
 | Field | Description |
