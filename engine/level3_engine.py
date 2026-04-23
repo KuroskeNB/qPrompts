@@ -327,12 +327,26 @@ def _check_turn_assertions(
 
         if atype == "ends_with_question":
             passed, detail = _assert_ends_with_question(agent_response, params)
+        elif atype == "max_words":
+            passed, detail = _assert_max_words(agent_response, params)
+        elif atype == "max_sentences":
+            passed, detail = _assert_max_sentences(agent_response, params)
+        elif atype == "no_forbidden_phrases":
+            passed, detail = _assert_no_forbidden_phrases(agent_response, params)
+        elif atype == "contains_phrase":
+            passed, detail = _assert_contains_phrase(agent_response, params)
+        elif atype == "regex_forbidden":
+            passed, detail = _assert_regex_forbidden(agent_response, params)
+        elif atype == "regex_required":
+            passed, detail = _assert_regex_required(agent_response, params)
         else:
             passed, detail = False, f"Unknown assertion type '{atype}'"
 
         results.append({"assertion": desc, "passed": passed, "detail": detail})
     return results
 
+
+# ── Individual assertion implementations ───────────────────────────────────────
 
 _TERMINAL_PHRASES = (
     "hold", "transfer", "connect", "goodbye", "conclude", "moment",
@@ -343,11 +357,9 @@ def _assert_ends_with_question(response: str, params: dict) -> tuple[bool, str]:
     for phrase in _TERMINAL_PHRASES:
         if phrase in lowered:
             return True, f"Terminal phrase '{phrase}' detected — closing question not required"
-
     max_q = params.get("max_questions", 1)
     questions = re.findall(r"\?", response)
     count = len(questions)
-
     if count == 0:
         return False, "No question mark found — agent must close with a question"
     if count > max_q:
@@ -355,6 +367,69 @@ def _assert_ends_with_question(response: str, params: dict) -> tuple[bool, str]:
     if not response.strip().endswith("?"):
         return False, "Response does not end with a question"
     return True, f"Ends with exactly {count} question(s)"
+
+
+def _assert_max_words(response: str, params: dict) -> tuple[bool, str]:
+    limit = int(params.get("max", 50))
+    count = len(response.split())
+    if count > limit:
+        return False, f"{count} words — limit is {limit}"
+    return True, f"{count} words (limit {limit})"
+
+
+def _assert_max_sentences(response: str, params: dict) -> tuple[bool, str]:
+    limit = int(params.get("max", 3))
+    sentences = [s for s in re.split(r"[.!?]+", response) if s.strip()]
+    count = len(sentences)
+    if count > limit:
+        return False, f"{count} sentences — limit is {limit}"
+    return True, f"{count} sentence(s) (limit {limit})"
+
+
+def _assert_no_forbidden_phrases(response: str, params: dict) -> tuple[bool, str]:
+    phrases = params.get("phrases", [])
+    case_sensitive = params.get("case_sensitive", False)
+    check = response if case_sensitive else response.lower()
+    for phrase in phrases:
+        needle = phrase if case_sensitive else phrase.lower()
+        if needle in check:
+            return False, f"Forbidden phrase detected: '{phrase}'"
+    return True, f"None of {len(phrases)} forbidden phrase(s) found"
+
+
+def _assert_contains_phrase(response: str, params: dict) -> tuple[bool, str]:
+    phrases = params.get("phrases", [])
+    case_sensitive = params.get("case_sensitive", False)
+    check = response if case_sensitive else response.lower()
+    for phrase in phrases:
+        needle = phrase if case_sensitive else phrase.lower()
+        if needle in check:
+            return True, f"Required phrase found: '{phrase}'"
+    return False, f"None of the required phrases found: {phrases}"
+
+
+def _assert_regex_forbidden(response: str, params: dict) -> tuple[bool, str]:
+    pattern = params.get("pattern", "")
+    flags = 0 if params.get("case_sensitive", False) else re.IGNORECASE
+    try:
+        m = re.search(pattern, response, flags)
+    except re.error as exc:
+        return False, f"Invalid regex: {exc}"
+    if m:
+        return False, f"Forbidden pattern matched: '{m.group()[:60]}'"
+    return True, "Forbidden pattern not found"
+
+
+def _assert_regex_required(response: str, params: dict) -> tuple[bool, str]:
+    pattern = params.get("pattern", "")
+    flags = 0 if params.get("case_sensitive", False) else re.IGNORECASE
+    try:
+        m = re.search(pattern, response, flags)
+    except re.error as exc:
+        return False, f"Invalid regex: {exc}"
+    if m:
+        return True, f"Required pattern matched: '{m.group()[:60]}'"
+    return False, "Required pattern not found"
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────

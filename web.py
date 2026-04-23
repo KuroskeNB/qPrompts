@@ -1080,6 +1080,13 @@ button.sm{height:28px;font-size:12px;padding:0 10px;border-radius:6px}
                 <label>Goal Verification Prompt</label>
                 <textarea id="cfg-l3prompt" rows="3"></textarea>
               </div>
+              <div style="margin-top:14px">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                  <label style="margin:0">Per-Turn Assertions</label>
+                  <button class="sm" onclick="addAssertion()" style="padding:2px 10px">+ Add</button>
+                </div>
+                <div id="assertionsList"></div>
+              </div>
             </div>
           </div>
 
@@ -1439,7 +1446,98 @@ function renderConfig(){
   $('cfg-l3turns').value = l3.default_turns||4;
   $('cfg-l3model').value = l3.goal_check_model||'';
   $('cfg-l3prompt').value = l3.goal_verification_prompt||'';
-  renderRules(); renderRubrics();
+  renderRules(); renderRubrics(); renderAssertions(l3.turn_assertions||[]);
+}
+
+// ── Turn Assertion Builder ─────────────────────────────────────────────────────
+
+const ASSERTION_TYPES = [
+  {value:'ends_with_question', label:'Ends with question'},
+  {value:'max_words',          label:'Max words'},
+  {value:'max_sentences',      label:'Max sentences'},
+  {value:'no_forbidden_phrases', label:'No forbidden phrases'},
+  {value:'contains_phrase',    label:'Contains phrase'},
+  {value:'regex_forbidden',    label:'Regex forbidden'},
+  {value:'regex_required',     label:'Regex required'},
+];
+
+function assertionParamsHtml(type, params){
+  params = params||{};
+  if(type==='ends_with_question') return `
+    <div class="form-group" style="flex:1"><label>Max questions</label>
+      <input type="number" class="ap-max_questions" value="${params.max_questions||1}" min="1"></div>`;
+  if(type==='max_words') return `
+    <div class="form-group" style="flex:1"><label>Max words</label>
+      <input type="number" class="ap-max" value="${params.max||50}" min="1"></div>`;
+  if(type==='max_sentences') return `
+    <div class="form-group" style="flex:1"><label>Max sentences</label>
+      <input type="number" class="ap-max" value="${params.max||3}" min="1"></div>`;
+  if(type==='no_forbidden_phrases'||type==='contains_phrase') return `
+    <div class="form-group" style="flex:1"><label>Phrases (one per line)</label>
+      <textarea class="ap-phrases" rows="2" style="font-size:12px">${(params.phrases||[]).join('\n')}</textarea></div>`;
+  if(type==='regex_forbidden'||type==='regex_required') return `
+    <div class="form-group" style="flex:1"><label>Pattern (regex)</label>
+      <input type="text" class="ap-pattern" value="${esc(params.pattern||'')}" style="font-family:monospace"></div>`;
+  return '';
+}
+
+function buildAssertionRow(a, idx){
+  const typeOpts = ASSERTION_TYPES.map(t=>`<option value="${t.value}"${a.type===t.value?' selected':''}>${t.label}</option>`).join('');
+  const row = document.createElement('div');
+  row.className='rule-row'; row.dataset.idx=idx;
+  row.style='align-items:flex-start;gap:8px';
+  row.innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:6px;flex:1">
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="a-type" style="flex:1;height:32px;border-radius:6px;border:1px solid var(--bor);background:var(--sur);color:var(--text);padding:0 8px;font-size:13px">
+          ${typeOpts}
+        </select>
+        <input type="text" class="a-desc" placeholder="Description (shown in results)" value="${esc(a.description||a.type||'')}" style="flex:2">
+      </div>
+      <div class="a-params" style="display:flex;gap:8px">${assertionParamsHtml(a.type, a.params)}</div>
+    </div>
+    <button class="sm danger" onclick="removeAssertion(${idx})" style="margin-top:4px">✕</button>`;
+  row.querySelector('.a-type').addEventListener('change', function(){
+    row.querySelector('.a-params').innerHTML = assertionParamsHtml(this.value, {});
+  });
+  return row;
+}
+
+function renderAssertions(list){
+  const c=$('assertionsList'); c.innerHTML='';
+  (list||[]).forEach((a,i)=>c.appendChild(buildAssertionRow(a,i)));
+}
+
+function addAssertion(){
+  const l3 = cfgData.level3||{};
+  const list = [...(l3.turn_assertions||[]), {type:'ends_with_question', description:'Agent must end with a question', params:{max_questions:1}}];
+  cfgData.level3 = {...l3, turn_assertions: list};
+  renderAssertions(list);
+}
+
+function removeAssertion(idx){
+  const l3 = cfgData.level3||{};
+  const list = (l3.turn_assertions||[]).filter((_,i)=>i!==idx);
+  cfgData.level3 = {...l3, turn_assertions: list};
+  renderAssertions(list);
+}
+
+function collectAssertions(){
+  const rows = $('assertionsList').querySelectorAll('.rule-row');
+  return [...rows].map(row=>{
+    const type = row.querySelector('.a-type').value;
+    const desc = row.querySelector('.a-desc').value.trim();
+    let params = {};
+    const maxQ = row.querySelector('.ap-max_questions');
+    const maxN  = row.querySelector('.ap-max');
+    const phrases = row.querySelector('.ap-phrases');
+    const pattern = row.querySelector('.ap-pattern');
+    if(maxQ)    params.max_questions = parseInt(maxQ.value)||1;
+    if(maxN)    params.max           = parseInt(maxN.value)||1;
+    if(phrases) params.phrases       = phrases.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(pattern) params.pattern       = pattern.value.trim();
+    return {type, description: desc||type, params};
+  });
 }
 
 function toggleSec(id){
@@ -1640,7 +1738,7 @@ async function saveConfig(){
   cfg.meta={name:$('cfg-name').value,description:$('cfg-desc').value,system_prompt:$('cfg-sysprompt').value};
   cfg.level1={rules:collectRules()};
   cfg.level2={...cfg.level2,rubrics:collectRubrics()};
-  cfg.level3={...cfg.level3,default_turns:parseInt($('cfg-l3turns').value)||4,goal_check_model:$('cfg-l3model').value,goal_verification_prompt:$('cfg-l3prompt').value};
+  cfg.level3={...cfg.level3,default_turns:parseInt($('cfg-l3turns').value)||4,goal_check_model:$('cfg-l3model').value,goal_verification_prompt:$('cfg-l3prompt').value,turn_assertions:collectAssertions()};
   const res=await fetch(`/projects/${currentProject}/config`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
   if(res.ok){ showToast('Config saved'); cfgData=cfg; }
   else{ const e=await res.json(); showToast('Save failed: '+e.detail,'error'); }
