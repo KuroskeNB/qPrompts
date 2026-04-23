@@ -198,9 +198,21 @@ goal_achieved, reason = goal_verifier.chat(transcript, goal_state, temp=0.0)
 
 ### Turn Assertions
 
-Currently one type: `ends_with_question`.
+Seven assertion types are available, configured per-project via `level3.turn_assertions` in `project_config.yaml` (or built in the UI via **Manage → Config → L3 Settings → Per-Turn Assertions**):
 
-Checks that the agent's response ends with `?` and contains at most `max_questions` question marks. Includes an **exception list** for terminal phrases — if the response contains any of `hold`, `transfer`, `connect`, `goodbye`, `conclude`, or `moment`, the assertion auto-passes (closing question not appropriate for call-end flows).
+| Type | Key param(s) | What it checks |
+|------|-------------|----------------|
+| `ends_with_question` | `max_questions` (int, default 1) | Response ends with `?`; at most N question marks total |
+| `max_words` | `max` (int) | Word count ≤ limit |
+| `max_sentences` | `max` (int) | Sentence count ≤ limit (split on `[.!?]+`) |
+| `no_forbidden_phrases` | `phrases` (list of str) | None of the listed phrases appear |
+| `contains_phrase` | `phrases` (list of str) | At least one listed phrase appears |
+| `regex_forbidden` | `pattern` (Python regex) | Pattern must not match |
+| `regex_required` | `pattern` (Python regex) | Pattern must match |
+
+`ends_with_question` includes an **exception list** — if the response contains any of `hold`, `transfer`, `connect`, `goodbye`, `conclude`, or `moment`, the assertion auto-passes (closing question not required for call-end flows).
+
+All phrase checks support an optional `case_sensitive` boolean (default `false`).
 
 ### Pass Condition
 

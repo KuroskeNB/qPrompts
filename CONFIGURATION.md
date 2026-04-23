@@ -10,8 +10,8 @@ Every project is defined by a single `project_config.yaml` and a `prompts/` dire
 meta:
   name: "Hotel Voice Bot"
   description: "Concierge agent for Grand Hotel"
-  ollama_model: "llama3"
-  ollama_url: "http://localhost:11434/api/chat"
+  gemini_api_key: ""               # or set via Settings tab in the UI
+  gemini_model: "gemini-2.0-flash-lite"
 
 level1:
   rules:
@@ -68,12 +68,22 @@ level2:
 
 level3:
   default_turns: 4
-  goal_check_model: "llama3"
+  goal_check_model: "gemini-2.0-flash-lite"
   turn_assertions:
     - type: "ends_with_question"
       description: "Agent must close each turn with exactly one question"
       params:
         max_questions: 1
+    - type: "max_words"
+      description: "Response must be under 60 words"
+      params:
+        max: 60
+    - type: "no_forbidden_phrases"
+      description: "No filler phrases"
+      params:
+        phrases:
+          - "as an AI"
+          - "I cannot help with that"
   goal_verification_prompt: >
     Given the conversation transcript, did the agent successfully achieve
     the stated goal: "{goal_state}"?
@@ -89,8 +99,8 @@ level3:
 |-------|------|----------|-------------|
 | `name` | string | yes | Human-readable project name |
 | `description` | string | no | Optional description |
-| `ollama_model` | string | yes | Ollama model name for L2/L3 (e.g. `llama3`, `mistral`) |
-| `ollama_url` | string | yes | Ollama API endpoint (`http://localhost:11434/api/chat`) |
+| `gemini_api_key` | string | no | Gemini API key — can also be set via the Settings tab in the UI |
+| `gemini_model` | string | no | Model name (default: `gemini-2.0-flash-lite`) |
 
 > **Note:** `system_prompt` is intentionally omitted from `meta` — it is always loaded from the selected prompt file at run time and injected automatically. Editing the system prompt is done via **Manage → Prompts** in the UI.
 
@@ -202,8 +212,8 @@ params:
 
 ```yaml
 level2:
-  judge_model: "llama3"     # model to use as the judge (Ollama model name or ignored for Gemini)
-  temperature: 0.0          # 0.0 = deterministic (recommended)
+  judge_model: "gemini-2.0-flash-lite"    # overridden by the model selected in the UI
+  temperature: 0.0                         # 0.0 = deterministic (recommended)
   rubrics:
     - id: "unique_rubric_id"
       name: "Short Display Name"
@@ -212,7 +222,7 @@ level2:
 
 All rubrics are managed via **Manage → Config → Level 2 Rubrics** in the UI.
 
-> **Gemini note:** When using Gemini as the provider, `judge_model` is overridden by the model selected in the UI. The field is still required in the YAML for Ollama compatibility.
+> `judge_model` is overridden by the model selected in the UI Settings tab. The field in YAML serves as a documentation hint only.
 
 ### Writing Effective Rubric Instructions
 
@@ -270,7 +280,7 @@ A case **passes** if `actual_failures == expected_failures` exactly. Unexpected 
 ```yaml
 level3:
   default_turns: 4
-  goal_check_model: "llama3"     # model for final goal verification
+  goal_check_model: "gemini-2.0-flash-lite"    # model for final goal verification
   turn_assertions:               # checked on every agent turn
     - type: "ends_with_question"
       description: "Agent must end with exactly one question"
@@ -285,6 +295,10 @@ All L3 settings are managed via **Manage → Config → Level 3 Settings** in th
 
 ### Turn Assertion Types
 
+All seven types are available both in YAML and via the **Manage → Config → L3 Settings → Per-Turn Assertions** UI builder (type dropdown + dynamic param fields + add/remove buttons).
+
+---
+
 #### `ends_with_question`
 Checks that the agent's response ends with `?` and contains at most `max_questions` question marks.
 
@@ -297,6 +311,82 @@ params:
 **Exception list** — if the response contains any of the following phrases, the assertion auto-passes (closing question not appropriate for call-end flows):
 
 `hold` · `transfer` · `connect` · `goodbye` · `conclude` · `moment`
+
+---
+
+#### `max_words`
+Fails if the response exceeds the word limit.
+
+```yaml
+type: max_words
+params:
+  max: 50    # required — maximum allowed words
+```
+
+---
+
+#### `max_sentences`
+Fails if the sentence count exceeds the limit (split on `[.!?]+`).
+
+```yaml
+type: max_sentences
+params:
+  max: 3    # required — maximum allowed sentences
+```
+
+---
+
+#### `no_forbidden_phrases`
+Fails if any of the listed phrases are found in the response.
+
+```yaml
+type: no_forbidden_phrases
+params:
+  phrases:
+    - "as an AI"
+    - "I cannot help with that"
+  case_sensitive: false    # optional, default: false
+```
+
+---
+
+#### `contains_phrase`
+Passes if at least one of the listed phrases is found. Fails if none match.
+
+```yaml
+type: contains_phrase
+params:
+  phrases:
+    - "confirmation number"
+    - "booking reference"
+  case_sensitive: false    # optional, default: false
+```
+
+---
+
+#### `regex_forbidden`
+Fails if the Python regex pattern matches anywhere in the response.
+
+```yaml
+type: regex_forbidden
+params:
+  pattern: '\b\d{4,}\b'    # required — Python regex
+  case_sensitive: false      # optional, default: false
+```
+
+---
+
+#### `regex_required`
+Fails if the Python regex pattern does **not** match anywhere in the response.
+
+```yaml
+type: regex_required
+params:
+  pattern: '(?i)SmilePro'   # required — Python regex
+  case_sensitive: false       # optional, default: false
+```
+
+---
 
 ### Pass Condition
 
